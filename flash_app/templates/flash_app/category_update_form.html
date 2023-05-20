@@ -1,0 +1,10 @@
+{% extends 'flash_base.html' %}
+{% block content %}
+<p>Add your flashcard category</p>
+    <form action="" method="POST">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Update">
+
+    </form>
+{% endblock %}

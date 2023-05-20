@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+{% extends 'flash_base.html' %}
+
+{% block content %}
+<p>Choose session</p>
+<form method="POST" action="">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <br/>
+  <input type="submit" value="start">
+</form>
+{% endblock %}
+

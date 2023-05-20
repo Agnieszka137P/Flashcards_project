@@ -1,0 +1,27 @@
+<!doctype html>
+        <html>
+            <head><meta charset="utf-8">
+            <title>{% block title %}Flashcards{% endblock %}</title>
+            </head>
+            <body>
+<!--            <img src="/static/logo.png">-->
+                <h1>Learn with cards</h1>
+<div>
+    {% if user.is_authenticated %}
+        {{ user.username }} <a href="/accounts/logout/">Logout</a>
+    {% else %}
+        {{ user.username }} <a href="/accounts/login/">Login</a>
+    {% endif %}
+</div>
+            {% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+                {% block content %}
+                {% endblock %}
+            </body>
+        </html>
+
