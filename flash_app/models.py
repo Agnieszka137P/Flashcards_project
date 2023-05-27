@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-from flashcards import settings
 
 RESULTS = (
     (0, 'WRONG'),
@@ -23,8 +22,7 @@ class QuestionText(models.Model):
     answer = models.TextField()
     categories = models.ManyToManyField(Category)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-    #user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                      #null=True, blank=True, on_delete=models.SET_NULL)
+
 
 
 # class QuestionImage(models.Model):
@@ -35,13 +33,15 @@ class QuestionText(models.Model):
 
 
 class FlashCardsTextStatus(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    session = models.ForeignKey("Session", on_delete=models.CASCADE, null=True)
     flash_card = models.ForeignKey(QuestionText, on_delete=models.CASCADE)
-    result_1 = models.IntegerField(choices=RESULTS)
-    date_1 = models.DateTimeField(auto_now=True)
-    result_2 = models.IntegerField(choices=RESULTS, null=True)
-    date_2 = models.DateTimeField(null=True)
-    result_3 = models.IntegerField(choices=RESULTS, null=True)
-    date_3 = models.DateTimeField(null=True)
+    result = models.IntegerField(choices=RESULTS, null=True)
+    date = models.DateTimeField(auto_now=True)
 
 
+class Session(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    start_date = models.DateTimeField(auto_now_add=True)
+    flash_cards = models.ManyToManyField(QuestionText, through=FlashCardsTextStatus)
+    amount_of_cards = models.IntegerField()
+    category = models.ForeignKey(Category, on_delete=models.CASCADE)

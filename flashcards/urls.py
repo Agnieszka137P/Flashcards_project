@@ -18,15 +18,26 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views, urls
 from django.contrib.auth import authenticate, logout, login
 from django.urls import path, include
-from flash_app.views import AddCategoryView, AddTextFlashcardView, ChooseLearnSessionView
+from flash_app.views import AddCategoryView, AddTextFlashcardView, ChooseLearnSessionView, FlashcardTextQuestionView, \
+    FlashcardTextAnswerView, FinishPageView, CategoryListView, FlashcardsView, FlashcardsListView, UpdateCategoryView, \
+    DeleteCategoryView, UpdateQuestionTextView, DeleteQuestionTextView
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('add_category', AddCategoryView.as_view(), name='add_category'),
-    #path('update_category', UpdateCategoryView.as_view(), name='update_category'),
-    path('add_textflashcard', AddTextFlashcardView.as_view(), name='add_textflashcard'),
+    path('', FlashcardsView.as_view(), name="index"),
     path('accounts/', include("django.contrib.auth.urls")),
+    path('accounts/profile/', FlashcardsView.as_view(), name="index"), #czy to jest dobrze?
+    path('add_category', AddCategoryView.as_view(), name='add_category'),
+    path('category/update/<int:pk>', UpdateCategoryView.as_view(), name='update_category'),
+    path('category/delete/<int:pk>', DeleteCategoryView.as_view(), name='delete_category'),
+    path('add_textflashcard', AddTextFlashcardView.as_view(), name='add_textflashcard'),
     path('choose_session', ChooseLearnSessionView.as_view(), name='choose_session'),
-    # path('flashcard_text', FlashcardTextView.as_view(), name='flashcard'),
+    path('flashcard_question/<int:session_id>', FlashcardTextQuestionView.as_view(), name='flashcard_question'),
+    path('flashcard_answer/<int:session_id>/<int:questiontext_id>', FlashcardTextAnswerView.as_view(), name='flashcard_answer'),
+    path('finish_page', FinishPageView.as_view(), name='finish_page'),
+    path('category_list', CategoryListView.as_view(), name='category_list'),
+    path('flashcards_list/<int:category_id>', FlashcardsListView.as_view(), name='flashcards_list'),
+    path('flashcards_list/questiontext/update/<int:pk>', UpdateQuestionTextView.as_view(), name='update_questiontext'),
+    path('flashcards_list/questiontext/delete/<int:pk>', DeleteQuestionTextView.as_view(), name='delete_questiontext'),
 ]

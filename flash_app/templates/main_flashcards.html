@@ -1,0 +1,18 @@
+{% extends 'flash_base.html' %}
+{% block content %}
+
+        <p> Welcome!</p>
+<div>
+    {% if user.is_authenticated %}
+    <ul>
+    <li><a href="/choose_session">Start learning session</a></li>
+    <li><a href="/category_list">Categories list</a></li>
+    <li><a href="/flashcards_list">Flashcards list</a></li>
+    <li><a href="/add_category">Add Category</a></li>
+    <li><a href="/add_textflashcard">Add Text Flashcard</a></li>
+    <li><a href="/settings">My settings</a></li>
+    </ul>
+    {% endif %}
+</div>
+
+{% endblock %}

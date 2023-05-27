@@ -17,7 +17,12 @@ class AddCategoryForm(ModelForm):
 #     username = forms.CharField(max_length=255)
 #     password = forms.CharField(widget=forms.PasswordInput)
 
-class ChooseLearnSessionForm(forms.Form):
-    number_of_cards = forms.IntegerField(min_value=1, max_value=100)
-    category = forms.CharField(max_length=64)
-    #dodać mozliwość wyboru
+
+
+class FlashcardTextAnswerForm(ModelForm):
+    class Meta:
+        model = FlashCardsTextStatus
+        fields = ['result']
+        widgets = {
+            'result': forms.Select,
+        }

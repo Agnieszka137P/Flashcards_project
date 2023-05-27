@@ -1,6 +1,6 @@
 {% extends 'flash_base.html' %}
 {% block content %}
-<p>Edit category</p>
+<p>Edit flashcard</p>
     <form action="" method="POST">
     {% csrf_token %}
     {{ form.as_p }}
@@ -8,3 +8,4 @@
 
     </form>
 {% endblock %}
+
