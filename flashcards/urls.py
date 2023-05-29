@@ -35,9 +35,9 @@ urlpatterns = [
     path('choose_session', ChooseLearnSessionView.as_view(), name='choose_session'),
     path('flashcard_question/<int:session_id>', FlashcardTextQuestionView.as_view(), name='flashcard_question'),
     path('flashcard_answer/<int:session_id>/<int:questiontext_id>', FlashcardTextAnswerView.as_view(), name='flashcard_answer'),
-    path('finish_page', FinishPageView.as_view(), name='finish_page'),
+    path('finish_page/<int:session_id>', FinishPageView.as_view(), name='finish_page'),
     path('category_list', CategoryListView.as_view(), name='category_list'),
-    path('flashcards_list/<int:category_id>', FlashcardsListView.as_view(), name='flashcards_list'),
-    path('flashcards_list/questiontext/update/<int:pk>', UpdateQuestionTextView.as_view(), name='update_questiontext'),
-    path('flashcards_list/questiontext/delete/<int:pk>', DeleteQuestionTextView.as_view(), name='delete_questiontext'),
+    path('flashcards_list', FlashcardsListView.as_view(), name='flashcards_list'),
+    path('questiontext/update/<int:pk>', UpdateQuestionTextView.as_view(), name='update_questiontext'),
+    path('questiontext/delete/<int:pk>', DeleteQuestionTextView.as_view(), name='delete_questiontext'),
 ]

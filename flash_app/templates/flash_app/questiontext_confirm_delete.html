@@ -1,0 +1,10 @@
+{% extends 'flash_base.html' %}
+{% block content %}
+<p>Delete Flashcard</p>
+    <form action="" method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Delete">
+
+    </form>
+{% endblock %}
