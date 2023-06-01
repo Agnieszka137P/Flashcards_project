@@ -1,6 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render
-from django.template.defaulttags import csrf_token
 from django.template.response import TemplateResponse
 from django.views import View
 from django.contrib import messages
@@ -52,18 +51,21 @@ class UpdateCategoryView(LoginRequiredMixin,  PermissionRequiredMixin, SuccessMe
 
 
 class DeleteCategoryView(PermissionRequiredMixin, DeleteView):
+    """Delete of existing flashcard category for logged user with required permission"""
     permission_required = 'flash_app.delete_category'
     model = Category
     success_url = reverse_lazy('category_list')
 
 
 class AddTextFlashcardView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    """View allowing to create Flashcards for logged users"""
     model = QuestionText
     fields = ['question', 'answer', 'categories']
     success_url = reverse_lazy('add_textflashcard')
     success_message = 'flashcard added'
 
     def form_valid(self, form):
+        """logged user is assigned as QuestionText object user"""
         obj = form.save(commit=False)
         obj.user = self.request.user
         obj.save()
@@ -83,8 +85,9 @@ class FlashcardsListView(LoginRequiredMixin, ListView):
 
 # dodać możliwość posortowania po kategorii
 
-    #  edycje i usuwanie może zrobić tylko user bedacy ownerem fiszki
+
 class UpdateQuestionTextView(LoginRequiredMixin, SuccessMessageMixin, UserPassesTestMixin, UpdateView):
+    """View allowing to update flashcard by their user"""
     model = QuestionText
     success_url = reverse_lazy('flashcards_list')
     fields = ['question', 'answer', 'categories']
@@ -92,32 +95,37 @@ class UpdateQuestionTextView(LoginRequiredMixin, SuccessMessageMixin, UserPasses
     success_message = 'flashcard updated'
 
     def test_func(self):
+        """check if logged user is the same as updated object user"""
         object = self.get_object()
         return object.user == self.request.user
 
 
-    #  edycje i usuwanie może zrobić tylko user bedacy ownerem fiszki
 class DeleteQuestionTextView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """View allowing to delete flashcard by their user"""
     model = QuestionText
     success_url = reverse_lazy('flashcards_list')
 
 
     def test_func(self):
+        """check if logged user is the same as updated object user"""
         object = self.get_object()
         print(object.user == self.request.user)
         return object.user == self.request.user
 
 
 class ChooseLearnSessionView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    """View for choose learning session, it is doing by create object of Session model.
+    User can choose only flashcards created by himself or placed in database without assigned user"""
     model = Session
     fields = ['amount_of_cards', 'category']
 
     def form_valid(self, form):
+        """flashcards from chosen category are filter by user (logged user or no user)
+        and put in one list. List is shuffled. Flashcards from list are put in "through" table"""
         form.instance.user = self.request.user
         result = super().form_valid(form)
         number = form.cleaned_data['amount_of_cards']
         category_id = form.cleaned_data['category']
-        #category = Category.objects.get(pk=category_id)
         flashcards_of_user = QuestionText.objects.filter(categories=category_id).filter(user_id=self.request.user.id).order_by('?')
         flashcards_common_list = QuestionText.objects.filter(categories=category_id).filter(user_id__isnull=True)
         flashcards_list = []
@@ -133,15 +141,12 @@ class ChooseLearnSessionView(LoginRequiredMixin, SuccessMessageMixin, CreateView
             flashcards_list = flashcards_list
         elif len(flashcards_list) > number:
             flashcards_list = flashcards_list[0:number]
-        #zapełniamy tą listą tabelę pośrednią
         for card in flashcards_list:
-            FlashCardsTextStatus.objects.create(result=None, session=form.instance, flash_card=card)
-            #user=self.request.user,
-            #c.flash_card.add(card)
+            FlashCardsTextStatus.objects.create(result=None, session=form.instance, flash_card=card) # flashcards from list are put in through table, each have at begin result "None"
         return super().form_valid(form)
 
-    # przekierowanie do pierwszej fiszki w sesji
     def get_success_url(self):
+        """Redirection to question from first flashcard"""
         return reverse('flashcard_question', kwargs={'session_id': self.object.id})
 
 
@@ -149,7 +154,6 @@ class ChooseLearnSessionView(LoginRequiredMixin, SuccessMessageMixin, CreateView
 class FlashcardTextQuestionView(LoginRequiredMixin, View):
     def get(self, request, session_id):
         flashcards = FlashCardsTextStatus.objects.filter(session_id=session_id)
-        #session = Session.objects.get(id=session_id)
         flashcards_id_list = []
         for card in flashcards:
             if card.flash_card_id not in flashcards_id_list:
