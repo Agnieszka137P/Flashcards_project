@@ -1,8 +1,7 @@
-from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render
+from django.template.defaulttags import csrf_token
 from django.template.response import TemplateResponse
-from django.utils.decorators import method_decorator
 from django.views import View
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
@@ -13,18 +12,18 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, HttpResponseRedirect
 import random
 
-from .models import Category, QuestionText, FlashCardsTextStatus, Session
+from .models import Category, QuestionText, FlashCardsTextStatus, Session, QuestionImage
 from .forms import FlashcardTextAnswerForm
 
 
 class FlashcardsView(View):
+    """Start page with link to loggin view"""
     def get(self, request):
         return TemplateResponse(request, 'main_flashcards.html')
 
-    #context = {}
-
 
 class AddCategoryView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    """View allowing to create categories"""
     model = Category
     success_url = reverse_lazy('add_category')
     fields = '__all__'
@@ -34,12 +33,14 @@ class AddCategoryView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
 
 
 class CategoryListView(ListView):
+    """List of all categories with links to update and delete views"""
     paginate_by = 20
     model = Category
     ordering = ('category_name', 'category_description')
 
 
 class UpdateCategoryView(LoginRequiredMixin,  PermissionRequiredMixin, SuccessMessageMixin, UpdateView):
+    """Updating of existing flashcard category for logged user with required permission"""
     model = Category
     success_url = reverse_lazy('category_list')
     fields = '__all__'
@@ -70,17 +71,19 @@ class AddTextFlashcardView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
 
 
 class FlashcardsListView(LoginRequiredMixin, ListView):
+    """List of flashcards created by logged user with links to update and delete views"""
     paginate_by = 20
     model = QuestionText
     ordering = ('question', 'answer')
 
     def get_queryset(self):
+        """Filtering to return only flashcards created by logged user"""
         query_set = super().get_queryset()
         return query_set.filter(user_id=self.request.user.id)
 
 # dodać możliwość posortowania po kategorii
 
-
+    #  edycje i usuwanie może zrobić tylko user bedacy ownerem fiszki
 class UpdateQuestionTextView(LoginRequiredMixin, SuccessMessageMixin, UserPassesTestMixin, UpdateView):
     model = QuestionText
     success_url = reverse_lazy('flashcards_list')
@@ -88,20 +91,21 @@ class UpdateQuestionTextView(LoginRequiredMixin, SuccessMessageMixin, UserPasses
     template_name_suffix = '_update_form'
     success_message = 'flashcard updated'
 
-    #  edycje i usuwanie może zrobić tylko user bedacy ownerem fiszki
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.user == self.request.user
+        object = self.get_object()
+        return object.user == self.request.user
 
 
+    #  edycje i usuwanie może zrobić tylko user bedacy ownerem fiszki
 class DeleteQuestionTextView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = QuestionText
     success_url = reverse_lazy('flashcards_list')
 
-    #  edycje i usuwanie może zrobić tylko user bedacy ownerem fiszki
+
     def test_func(self):
-        self.object = self.get_object()
-        return self.object.user == self.request.user
+        object = self.get_object()
+        print(object.user == self.request.user)
+        return object.user == self.request.user
 
 
 class ChooseLearnSessionView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
@@ -114,14 +118,13 @@ class ChooseLearnSessionView(LoginRequiredMixin, SuccessMessageMixin, CreateView
         number = form.cleaned_data['amount_of_cards']
         category_id = form.cleaned_data['category']
         #category = Category.objects.get(pk=category_id)
-        flashcards_user = QuestionText.objects.filter(categories=category_id).filter(user_id=self.request.user.id).order_by('?')
+        flashcards_of_user = QuestionText.objects.filter(categories=category_id).filter(user_id=self.request.user.id).order_by('?')
         flashcards_common_list = QuestionText.objects.filter(categories=category_id).filter(user_id__isnull=True)
         flashcards_list = []
         for card in flashcards_common_list:
             flashcards_list.append(card)
-        for card in flashcards_user:
+        for card in flashcards_of_user:
             flashcards_list.append(card)
-
         random.shuffle(flashcards_list)
         if len(flashcards_list) == 0:
             messages.success(self.request, "You don't have flashcards in chosen category")
@@ -151,12 +154,10 @@ class FlashcardTextQuestionView(LoginRequiredMixin, View):
         for card in flashcards:
             if card.flash_card_id not in flashcards_id_list:
                 flashcards_id_list.append(card.flash_card_id)
-
         random.shuffle(flashcards_id_list)
         num = 0
         while num < len(flashcards_id_list):
             item = flashcards_id_list[num]
-
             questiontext = QuestionText.objects.get(id=item)
             flashcard_status = FlashCardsTextStatus.objects.filter(session_id=session_id, flash_card_id=item).order_by("-date").first()
             if flashcard_status.result != 1 and flashcard_status.result != 2:
@@ -201,15 +202,43 @@ class FlashcardTextAnswerView(LoginRequiredMixin, FormView):
 # wynik zapisujemy w modelu FlashcardsTextStatus
 
 
-class FinishPageView(LoginRequiredMixin, View): #dodać kategorię itp
+class FinishPageView(LoginRequiredMixin, View): #dodać inne posumowania
     def get(self, request, session_id):
         flashcards_done = FlashCardsTextStatus.objects.filter(session_id=session_id)
+        session = Session.objects.get(id=session_id)
+        category = session.category.category_name
         flashcards_id_list = []
         for card in flashcards_done:
             if card.flash_card_id not in flashcards_id_list:
                 flashcards_id_list.append(card.flash_card_id)
         amount = len(flashcards_id_list)
         time = flashcards_done[len(flashcards_done)-1].date - flashcards_done[0].date
-        return render(request, "finish_page.html", context={"amount": amount, "time": time})
+        return render(request, "finish_page.html", context={"amount": amount, "time": time, "category": category})
 
 
+class ProfileView(LoginRequiredMixin, View):
+    def get(self, request):
+        return render(request, "profile.html")
+
+
+class AddImageFlashcardView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    model = QuestionImage
+    fields = ['question', 'answer', 'categories']
+    success_url = reverse_lazy('add_imageflashcard')
+    success_message = 'flashcard added'
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.user = self.request.user
+        obj.save()
+        return super().form_valid(form)
+
+
+class FlashcardsImageListView(LoginRequiredMixin, ListView):
+    paginate_by = 20
+    model = QuestionImage
+    ordering = ('question', 'answer')
+
+    def get_queryset(self):
+        query_set = super().get_queryset()
+        return query_set.filter(user_id=self.request.user.id)

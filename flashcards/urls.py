@@ -14,13 +14,16 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views, urls
 from django.contrib.auth import authenticate, logout, login
 from django.urls import path, include
 from flash_app.views import AddCategoryView, AddTextFlashcardView, ChooseLearnSessionView, FlashcardTextQuestionView, \
     FlashcardTextAnswerView, FinishPageView, CategoryListView, FlashcardsView, FlashcardsListView, UpdateCategoryView, \
-    DeleteCategoryView, UpdateQuestionTextView, DeleteQuestionTextView
+    DeleteCategoryView, UpdateQuestionTextView, DeleteQuestionTextView, ProfileView, AddImageFlashcardView, \
+    FlashcardsImageListView
 
 
 urlpatterns = [
@@ -40,4 +43,12 @@ urlpatterns = [
     path('flashcards_list', FlashcardsListView.as_view(), name='flashcards_list'),
     path('questiontext/update/<int:pk>', UpdateQuestionTextView.as_view(), name='update_questiontext'),
     path('questiontext/delete/<int:pk>', DeleteQuestionTextView.as_view(), name='delete_questiontext'),
+    path('profile', ProfileView.as_view(), name='profile'),
+    path('add_imageflashcard', AddImageFlashcardView.as_view(), name='add_imageflashcard'),
+    path('image_list', FlashcardsImageListView.as_view(), name='image_list')
 ]
+
+
+# setting to display pictures in templates
+if settings.DEBUG:
+    urlpatterns = urlpatterns + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -26,15 +26,11 @@ def category():
 
 
 @pytest.fixture
-def textflashcard(user):
-    cat = Category.objects.create(
-        category_name="Spanish language",
-        category_description="words of spanish language"
-    )
+def textflashcard(user, category):
     textflashcard = QuestionText.objects.create(
         question="computer",
         answer="ordenador"
     )
-    textflashcard.categories.set(cat)
-    textflashcard.user.set(user)
+    textflashcard.user = user
+    textflashcard.categories.set([category])
     return textflashcard
