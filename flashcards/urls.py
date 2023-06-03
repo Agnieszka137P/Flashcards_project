@@ -17,8 +17,6 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.contrib.auth import views as auth_views, urls
-from django.contrib.auth import authenticate, logout, login
 from django.urls import path, include
 from flash_app.views import AddCategoryView, AddTextFlashcardView, ChooseLearnSessionView, FlashcardTextQuestionView, \
     FlashcardTextAnswerView, FinishPageView, CategoryListView, FlashcardsView, FlashcardsListView, UpdateCategoryView, \
