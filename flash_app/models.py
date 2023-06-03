@@ -66,4 +66,3 @@ class QuestionImage(models.Model):
 #     flash_cards = models.ManyToManyField(QuestionImage, through=QuestionImageStatus)
 #     amount_of_cards = models.IntegerField()
 #     category = models.ForeignKey(Category, on_delete=models.CASCADE)
-
