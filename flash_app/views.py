@@ -1,14 +1,11 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
-from django.shortcuts import render
 from django.template.response import TemplateResponse
 from django.views import View
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
 from django.views.generic import FormView, ListView, UpdateView, CreateView, DeleteView
 from django.urls import reverse_lazy, reverse
-from django.contrib.auth import authenticate, logout, login
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect
 import random
 
 from .models import Category, QuestionText, FlashCardsTextStatus, Session, QuestionImage
@@ -58,7 +55,7 @@ class DeleteCategoryView(PermissionRequiredMixin, DeleteView):
 
 
 class AddTextFlashcardView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
-    """View allowing to create Flashcards for logged users"""
+    """View allowing to create QuestionText flashcards for logged users"""
     model = QuestionText
     fields = ['question', 'answer', 'categories']
     success_url = reverse_lazy('add_textflashcard')
@@ -73,7 +70,7 @@ class AddTextFlashcardView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
 
 
 class FlashcardsListView(LoginRequiredMixin, ListView):
-    """List of flashcards created by logged user with links to update and delete views"""
+    """List of QuestionText flashcards created by logged user with links to update and delete views"""
     paginate_by = 20
     model = QuestionText
     ordering = ('question', 'answer')
@@ -83,7 +80,7 @@ class FlashcardsListView(LoginRequiredMixin, ListView):
         query_set = super().get_queryset()
         return query_set.filter(user_id=self.request.user.id)
 
-# dodać możliwość posortowania po kategorii
+# to add sorting by category
 
 
 class UpdateQuestionTextView(LoginRequiredMixin, SuccessMessageMixin, UserPassesTestMixin, UpdateView):
@@ -105,11 +102,9 @@ class DeleteQuestionTextView(LoginRequiredMixin, UserPassesTestMixin, DeleteView
     model = QuestionText
     success_url = reverse_lazy('flashcards_list')
 
-
     def test_func(self):
         """check if logged user is the same as updated object user"""
         object = self.get_object()
-        print(object.user == self.request.user)
         return object.user == self.request.user
 
 
@@ -142,7 +137,7 @@ class ChooseLearnSessionView(LoginRequiredMixin, SuccessMessageMixin, CreateView
         elif len(flashcards_list) > number:
             flashcards_list = flashcards_list[0:number]
         for card in flashcards_list:
-            FlashCardsTextStatus.objects.create(result=None, session=form.instance, flash_card=card) # flashcards from list are put in through table, each have at begin result "None"
+            FlashCardsTextStatus.objects.create(result=None, session=form.instance, flash_card=card)   # flashcards from list are put in through table, each have at begin result "None"
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -150,9 +145,19 @@ class ChooseLearnSessionView(LoginRequiredMixin, SuccessMessageMixin, CreateView
         return reverse('flashcard_question', kwargs={'session_id': self.object.id})
 
 
-
 class FlashcardTextQuestionView(LoginRequiredMixin, View):
+    """View showing flashcard question using FlashCardsTextStatus model. Question is display and
+    then pressing "check" button redirect to the page with answer. After each ques (on FlashcardTextAnswer View)
+    flashcard is saved as FlashCardsTextStatus record with time of create and result, and the same session_id
+    and flash_card_id.
+    """
     def get(self, request, session_id):
+        """Id of QuestionText flashcards from one session are put in list and shuffle. Then flashcard with first id
+        is checking - if the newest record in FlashCardsTextStatus is "wrong" or null (0 or null) question is display
+        if the newest record is "correct" or "correct but difficult" (1 or 2) next Flashcard is checking.
+        when there are no Flashcards with the newest record "wrong" or null session id finished with redirect to
+        the "finish page".
+        """
         flashcards = FlashCardsTextStatus.objects.filter(session_id=session_id)
         flashcards_id_list = []
         for card in flashcards:
@@ -170,43 +175,45 @@ class FlashcardTextQuestionView(LoginRequiredMixin, View):
             else:
                 num += 1
         session_id = session_id
-        return redirect('finish_page', session_id=session_id) #przekierowanie do strony "koniec sesji" z linkiem do głównej
-        # return redirect("flashcard_answer", session_id=session.id, questiontext_id=questiontext.id)
-
-    # wybiera fiszki z danym id, sortuje po dacie i sprawdza status najnowszej - jeśli jest 0 lub null wyrzuca ją,
-    # jeśli nie przechodzi do kolejnej, jeśli wszystkie ostatnie są zgadnięte przekierowuje do strony "koniec sesji" z linkiem do głównej
-
+        return redirect('finish_page', session_id=session_id)
 
 
 class FlashcardTextAnswerView(LoginRequiredMixin, FormView):
+    """View showing QuestionText flashcard answer with 3 options of result ("wrong", correct but difficult", "correct")
+    after choosing result new record is saved in flashcardstextstatus table and user is redirect to the
+    FlashcardTextQuestionView
+    """
     form_class = FlashcardTextAnswerForm
     template_name = 'flashcardtextanswer.html'
 
     def get_queryset(self):
+        """Session and QuestionText id are get form the URL"""
         query_set = super().get_queryset()
         return query_set.filter(session_id=int(self.kwargs['session_id'])).filter(questiontext_id=int(self.kwargs['questiontext_id']))
 
     def get_context_data(self):
+        """Getting context to display answer"""
         context = super().get_context_data()
         context['flashcard'] = QuestionText.objects.get(id=int(self.kwargs['questiontext_id']))
         return context
 
     def form_valid(self, form):
-        session = Session.objects.get(id=int(self.kwargs['session_id'])) # pobieramy sesję
-        flashcard = QuestionText.objects.get(id=int(self.kwargs['questiontext_id'])) # pobieramy fiszkę
+        """Result is choosing and new record is saved in flashcardstextstatus table"""
+        session = Session.objects.get(id=int(self.kwargs['session_id']))
+        flashcard = QuestionText.objects.get(id=int(self.kwargs['questiontext_id']))
         result = form.cleaned_data['result']
 
         FlashCardsTextStatus.objects.create(result=result, session=session, flash_card=flashcard)
         return super().form_valid(form)
 
     def get_success_url(self) -> str:
+        """Redirect to FlashcardTextQuestionView"""
         session = Session.objects.get(id=int(self.kwargs['session_id']))
         return reverse('flashcard_question', kwargs={'session_id': session.id})
 
-# wynik zapisujemy w modelu FlashcardsTextStatus
 
-
-class FinishPageView(LoginRequiredMixin, View): #dodać inne posumowania
+class FinishPageView(LoginRequiredMixin, View):
+    """View diplay after finishing learn session, with brief summary"""
     def get(self, request, session_id):
         flashcards_done = FlashCardsTextStatus.objects.filter(session_id=session_id)
         session = Session.objects.get(id=session_id)
@@ -221,17 +228,20 @@ class FinishPageView(LoginRequiredMixin, View): #dodać inne posumowania
 
 
 class ProfileView(LoginRequiredMixin, View):
+    """View of user profile, at this moment with link change password page"""
     def get(self, request):
         return render(request, "profile.html")
 
 
 class AddImageFlashcardView(LoginRequiredMixin, SuccessMessageMixin, CreateView):
+    """View allowing to create QuestionImage flashcards for logged users"""
     model = QuestionImage
     fields = ['question', 'answer', 'categories']
     success_url = reverse_lazy('add_imageflashcard')
     success_message = 'flashcard added'
 
     def form_valid(self, form):
+        """logged user is assigned as QuestionText object user"""
         obj = form.save(commit=False)
         obj.user = self.request.user
         obj.save()
@@ -239,10 +249,13 @@ class AddImageFlashcardView(LoginRequiredMixin, SuccessMessageMixin, CreateView)
 
 
 class FlashcardsImageListView(LoginRequiredMixin, ListView):
+    """List of QuestionImage flashcards created by logged user with links to update and delete views
+    (views to be added)"""
     paginate_by = 20
     model = QuestionImage
     ordering = ('question', 'answer')
 
     def get_queryset(self):
+        """Filtering to return only flashcards created by logged user"""
         query_set = super().get_queryset()
         return query_set.filter(user_id=self.request.user.id)
