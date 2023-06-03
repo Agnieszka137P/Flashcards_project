@@ -2,7 +2,7 @@ from django.contrib.auth.models import User
 from django.test import Client
 import pytest
 
-from .models import Category, QuestionText, FlashCardsTextStatus, Session
+from .models import Category, QuestionText, FlashCardsTextStatus, Session, QuestionImage
 
 
 @pytest.fixture
@@ -10,6 +10,11 @@ def user():
     user = User.objects.create_user(username="user", password="")
     return user
 
+
+@pytest.fixture
+def user_login():
+    user_login = User.objects.create_user(username="user2", password="bla")
+    return user_login
 
 @pytest.fixture
 def client():
@@ -78,32 +83,44 @@ def session(user, category, textflashcard, textflashcard_2, textflashcard_3):
     session.flash_cards.set([textflashcard, textflashcard_2, textflashcard_3])
     return session
 
-#
-# @pytest.fixture
-# def flashcards_status_1(user, session, textflashcard):
-#     flashcardsstatus_1 = FlashCardsTextStatus.objects.create(
-#         session=session,
-#         flash_card=textflashcard,
-#         result=0
-#     )
-#     return flashcardsstatus_1
-#
-#
-# @pytest.fixture
-# def flashcards_status_2(user, session, textflashcard_1):
-#     flashcardsstatus_2 = FlashCardsTextStatus.objects.create(
-#         session=session,
-#         flash_card=textflashcard_2,
-#         result=0
-#     )
-#     return flashcardsstatus_2
-#
-#
-# @pytest.fixture
-# def flashcards_status_3(user, session, textflashcard_3):
-#     flashcardsstatus_3 = FlashCardsTextStatus.objects.create(
-#         session=session,
-#         flash_card=textflashcard_3,
-#         result=0
-#     )
-#     return flashcardsstatus_3
+
+@pytest.fixture
+def flashcards_status_1(user, session, textflashcard):
+    flashcardsstatus_1 = FlashCardsTextStatus.objects.create(
+        session=session,
+        flash_card=textflashcard,
+        result=2
+    )
+    return flashcardsstatus_1
+
+
+@pytest.fixture
+def flashcards_status_2(user, session, textflashcard_2):
+    flashcardsstatus_2 = FlashCardsTextStatus.objects.create(
+        session=session,
+        flash_card=textflashcard_2,
+        result=0
+    )
+    return flashcardsstatus_2
+
+
+@pytest.fixture
+def flashcards_status_3(user, session, textflashcard_3):
+    flashcardsstatus_3 = FlashCardsTextStatus.objects.create(
+        session=session,
+        flash_card=textflashcard_3,
+        result=1
+    )
+    return flashcardsstatus_3
+
+
+@pytest.fixture
+def imageflashcard(user, category):
+    imageflashcard = QuestionImage.objects.create(
+        question="/media/images/lights_2.png",
+        answer="Peru",
+        user=user
+    )
+    imageflashcard.categories.set([category])
+    return imageflashcard
+
